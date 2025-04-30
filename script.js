@@ -1117,7 +1117,7 @@ function startInterview() {
     outfitAnalysisToggle.style.display = 'flex';
     
     // Connect to WebSocket
-    ws = new WebSocket('https://vm.tail9e6e2f.ts.net//ws');
+    ws = new WebSocket('https://vm.tail9e6e2f.ts.net/ws');
 
     ws.onopen = () => {
         // Send the interview topic
