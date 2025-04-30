@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Interview Assistant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script>
+        // Use a more reliable approach to load OpenCV
+        window.onOpenCvReady = function() {
+            console.log("OpenCV.js is ready!");
+            window.dispatchEvent(new Event('opencv-ready'));
+        };
+        
+        // Function to load OpenCV with multiple fallbacks
+        function loadOpenCV() {
+            // Create script element
+            const script = document.createElement('script');
+            script.async = true;
+            
+            // Try local fallback first for better reliability
+            script.src = 'https://unpkg.com/opencv.js@1.2.1/opencv.js';
+            script.onload = function() {
+                console.log("OpenCV loaded successfully from unpkg CDN");
+            };
+            script.onerror = function() {
+                console.warn("Failed to load OpenCV from unpkg, trying jsDelivr");
+                
+                // Try second source
+                const script2 = document.createElement('script');
+                script2.async = true;
+                script2.src = 'https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.7.0-release.1/opencv.js';
+                script2.onload = function() {
+                    console.log("OpenCV loaded successfully from jsDelivr");
+                };
+                script2.onerror = function() {
+                    console.error("Failed to load OpenCV from all sources");
+                    // Dispatch event to notify app that OpenCV failed to load
+                    window.dispatchEvent(new Event('opencv-load-failed'));
+                };
+                document.head.appendChild(script2);
+            };
+            
+            document.head.appendChild(script);
+        }
+        
+        // Ensure we load after DOM is ready
+        document.addEventListener('DOMContentLoaded', loadOpenCV);
+    </script>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js/+esm",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+            "talkinghead": "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@1.4/modules/talkinghead.mjs"
+        }
+    }
+    </script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="page-container">
+        <header class="app-header">
+            <h1><i class="fas fa-comments-dollar"></i> AI Interview Assistant</h1>
+        </header>
+
+        <main class="main-content">
+            <div class="camera-container" id="cameraContainer">
+                <video id="cameraElement" autoplay></video>
+                <canvas id="canvasOutput" style="display:none;"></canvas>
+                <div class="camera-overlay">
+                    <div class="camera-label">
+                        <i class="fas fa-video"></i> Your Camera
+                    </div>
+                </div>
+            </div>
+
+            <div class="outfit-toggle-container">
+                <button class="outfit-analysis-toggle" id="outfitAnalysisToggle" title="Show Outfit Analysis">
+                    <i class="fas fa-tshirt"></i>
+                </button>
+                <button class="expression-analysis-toggle" id="expressionAnalysisToggle" title="Show Expression Analysis">
+                    <i class="fas fa-smile"></i>
+                </button>
+            </div>
+
+            <div class="content-container">
+                <div class="setup-container" id="setupContainer">
+                    <div class="card">
+                        <h2><i class="fas fa-briefcase"></i> New Interview</h2>
+                        <div class="input-group">
+                            <label for="topicInput">Interview Topic</label>
+                            <input type="text" id="topicInput" placeholder="E.g., Software Engineering, Data Science, Marketing">
+                        </div>
+                        <button id="startButton" class="primary-btn">
+                            <i class="fas fa-play-circle"></i>
+                            Start Interview
+                        </button>
+                        <div class="loading" id="loading">
+                            <div class="spinner"></div>
+                            <span>Preparing interview questions</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="interview-container" id="interviewContainer">
+                    <div class="interview-grid">
+                        <div class="video-container">
+                            <video id="videoElement" autoplay></video>
+                            <div id="avatar"></div>
+                            <div id="avatarLoading" class="avatar-loading">
+                                <div class="spinner"></div>
+                                <span>Loading avatar...</span>
+                            </div>
+                        </div>
+
+                        <div class="chat-box">
+                            <div class="chat-header">
+                                <h3><i class="fas fa-comment-dots"></i> Interview Conversation</h3>
+                            </div>
+                            <div class="chat-container" id="chatContainer"></div>
+                            <div class="input-container">
+                                <textarea id="userInput" placeholder="Type your answer here..."></textarea>
+                                <div class="input-actions">
+                                    <div class="mic-button" id="micButton">
+                                        <i class="fas fa-microphone"></i>
+                                    </div>
+                                    <button class="live-chat-toggle" id="liveChatToggle" title="Toggle Live Chat Mode">
+                                        <i class="fas fa-headset"></i>
+                                    </button>
+                                    <button id="sendButton" class="send-btn">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="status-indicator" id="statusIndicator">
+                                <span id="liveChatStatus" style="display: none; margin-left: 10px; font-style: italic;">Live Chat Active <i class="fas fa-wifi"></i></span>
+                            </div>
+                            <div class="end-interview-container">
+                                <button id="endInterviewButton" class="end-interview-btn" onclick="endInterview()">
+                                    <i class="fas fa-stop-circle"></i>
+                                    End Interview & View Report
+                                </button>
+                                <div id="reportLoadingIndicator" class="report-loading-indicator" style="display: none;">
+                                    <div class="report-spinner"></div>
+                                    <div class="report-loading-text">Generating your expression report...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="outfit-analysis-container" id="outfitAnalysisContainer">
+                <div class="outfit-card">
+                    <button class="close-outfit-analysis" id="closeOutfitAnalysis">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <div class="outfit-analysis-header">
+                        <i class="fas fa-tshirt"></i>
+                        <h2>Outfit Analysis</h2>
+                    </div>
+                    <div class="outfit-analysis-content" id="outfitAnalysisContent">
+                        <!-- Content will be dynamically inserted here -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="expression-analysis-container" id="expressionAnalysisContainer">
+                <div class="expression-card">
+                    <button class="close-expression-analysis" id="closeExpressionAnalysis">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <div class="expression-analysis-header">
+                        <i class="fas fa-smile"></i>
+                        <h2>Expression Analysis</h2>
+                    </div>
+                    <div class="expression-analysis-content" id="expressionAnalysisContent">
+                        <!-- Content will be dynamically inserted here -->
+                    </div>
+                    <div class="expression-summary" id="expressionSummary">
+                        <!-- Summary will be shown here after the interview -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js" type="module"></script>
+</body>
+</html> 
